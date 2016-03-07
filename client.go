@@ -32,19 +32,10 @@ var connections map[*rpc2.Client]*OvsdbClient
 
 const DEFAULT_ADDR = "127.0.0.1"
 const DEFAULT_PORT = 6640
+const DEFAULT_UNIX_SOCKET = "/var/run/openvswitch/db.sock"
 
-func Connect(ipAddr string, port int) (*OvsdbClient, error) {
-	if ipAddr == "" {
-		ipAddr = DEFAULT_ADDR
-	}
-
-	if port <= 0 {
-		port = DEFAULT_PORT
-	}
-
-	target := fmt.Sprintf("%s:%d", ipAddr, port)
-	conn, err := net.Dial("tcp", target)
-
+func dial(network, address string) (*OvsdbClient, error) {
+	conn, err := net.Dial(network, address)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +61,27 @@ func Connect(ipAddr string, port int) (*OvsdbClient, error) {
 		}
 	}
 	return ovs, nil
+}
+
+// ConnectUnix generated the client which connects to the unix socket
+func ConnectUnix(unixSocket string) (*OvsdbClient, error) {
+	if unixSocket == "" {
+		unixSocket = DEFAULT_UNIX_SOCKET
+	}
+	return dial("unix", unixSocket)
+}
+
+func Connect(ipAddr string, port int) (*OvsdbClient, error) {
+	if ipAddr == "" {
+		ipAddr = DEFAULT_ADDR
+	}
+
+	if port <= 0 {
+		port = DEFAULT_PORT
+	}
+
+	target := fmt.Sprintf("%s:%d", ipAddr, port)
+	return dial("tcp", target)
 }
 
 func (ovs *OvsdbClient) Register(handler NotificationHandler) {
